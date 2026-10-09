@@ -1,0 +1,78 @@
+name: Mobile Price ML CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get project code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Train ML model
+        run: |
+          python train_model.py
+
+      - name: Check ML quality gate
+        run: |
+          python quality_gate.py
+
+      - name: Run automated ML tests
+        run: |
+          python -m unittest test_ml_pipeline.py -v
+
+      - name: Upload validated ML artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: mobile-price-ml-artifacts
+          path: |
+            mobile_price_model.pkl
+            metrics.json
+            train.csv
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Run prediction application tests
+        run: |
+          python -m unittest test_app.py -v
+
+      - name: Prepare release candidate
+        run: |
+          mkdir -p release_candidate
+
+          cp app.py release_candidate/
+          cp mobile_price_model.pkl release_candidate/
+          cp metrics.json release_candidate/
+          cp requirements.txt release_candidate/
+
+          printf "Mobile Price Prediction ML Application\nRun: python app.py\nEndpoint: POST /predict\n" > release_candidate/DEPLOYMENT.txt
+
+      - name: Upload release candidate
+        uses: actions/upload-artifact@v7
+        with:
+          name: mobile-price-ml-release
+          path: release_candidate/
+          if-no-files-found: error
+          retention-days: 7
