@@ -58,6 +58,7 @@ jobs:
         run: |
           python -m unittest test_app.py -v
 
+      
       - name: Prepare release candidate
         run: |
           mkdir -p release_candidate
@@ -66,6 +67,8 @@ jobs:
           cp mobile_price_model.pkl release_candidate/
           cp metrics.json release_candidate/
           cp requirements.txt release_candidate/
+          cp Dockerfile release_candidate/
+          cp .dockerignore release_candidate/
 
           printf "Mobile Price Prediction ML Application\nRun: python app.py\nEndpoint: POST /predict\n" > release_candidate/DEPLOYMENT.txt
 
