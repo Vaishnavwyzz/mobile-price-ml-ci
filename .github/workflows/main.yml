@@ -74,6 +74,28 @@ jobs:
           echo "Prediction response: $response"
           echo "$response" | grep -q '"prediction"'
 
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag Docker image
+        if: github.event_name != 'pull_request'
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/mobile-price-ml
+          docker tag mobile-price-ml:${{ github.sha }} $IMAGE:${{ github.sha }}
+          docker tag mobile-price-ml:${{ github.sha }} $IMAGE:latest
+
+      - name: Push Docker image
+        if: github.event_name != 'pull_request'
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/mobile-price-ml
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
+
       - name: Show Docker container logs
         if: always()
         run: docker logs mobile-price-container || true
